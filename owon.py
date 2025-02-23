@@ -26,7 +26,11 @@ class DMM:
 		msg=("MEAS?\n".encode('utf-8'))
 		ser.write(msg)
 		result=ser.readline().decode('utf-8')
-		[num,exp] = result.split("E")
+		try:
+			[num,exp] = result.split("E")
+		except:
+			num = result
+			exp = 0
 		self.measurement=float(num) * pow(10,int(exp))
 		#for command in ["MEAS?", "function1?", "range?"]:
 		#	msg=(command+"\n").encode('utf-8')
@@ -38,6 +42,10 @@ class DMM:
 		function1=ser.readline().decode('utf-8').strip()
 		function1=function1.strip('" ')
 		self.function1=function1[0:4]
+		if ( function1[-2:] == "AC" ):
+			self.ac = True
+		else:
+			self.ac = False
 		msg=("FUNCTION2?\n".encode('utf-8'))
 		ser.write(msg)
 		function2=ser.readline().decode('utf-8')

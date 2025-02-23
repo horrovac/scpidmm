@@ -22,6 +22,17 @@ class MainWindow(wx.Frame):
         'TEMP':5
     }
 
+    units = [
+            "VDC",
+            "ADC",
+            "Ω",
+            "F",
+            "Hz",
+            "°C",
+            "VAC",
+            "AAC"
+    ]
+
     TIMER=6
     refresh=100
     frame=0
@@ -83,8 +94,12 @@ class MainWindow(wx.Frame):
 
     def OnTimer(self,id):
         self.multimeter.get()
-        self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:f}</span>".format(self.multimeter.measurement))
         hl = self.m[self.multimeter.function1]
+        if(self.multimeter.ac == True):
+            unit = self.units[hl+6]
+        else:
+            unit = self.units[hl]
+        self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:.4f} {}</span>".format(self.multimeter.measurement, unit))
         if (self.hl != hl):
             self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
             self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
@@ -98,18 +113,26 @@ class MainWindow(wx.Frame):
         if ( button_id == self.VOLT ):
             if ( self.multimeter.function1 == "VOLT" ):
                 self.multimeter.ac = not self.multimeter.ac
+            else:
+                self.multimeter.ac = False
             self.multimeter.switch_mode("VOLT")
         if ( button_id == self.CURR ):
             if ( self.multimeter.function1 == "CURR" ):
                 self.multimeter.ac = not self.multimeter.ac
+            else:
+                self.multimeter.ac = False
             self.multimeter.switch_mode("CURR")
         if ( button_id == self.RES ):
+            self.multimeter.ac = False
             self.multimeter.switch_mode("RES")
         if ( button_id == self.CAP ):
+            self.multimeter.ac = False
             self.multimeter.switch_mode("CAP")
         if ( button_id == self.FREQ ):
+            self.multimeter.ac = False
             self.multimeter.switch_mode("FREQ")
         if ( button_id == self.TEMP ):
+            self.multimeter.ac = False
             self.multimeter.switch_mode("TEMP")
 
         
