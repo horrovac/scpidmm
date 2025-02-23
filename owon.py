@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: ts=4 sw=4 noexpandtab
 
-DEBUG=True
+DEBUG=False
 
 import serial
 import time
@@ -13,6 +13,7 @@ class DMM:
 	function1=""
 	function2=0
 	meas_range=0
+	ac=False
 	def __init__(self):
 		global ser
 		ser=serial.Serial()
@@ -41,9 +42,8 @@ class DMM:
 		ser.write(msg)
 		function2=ser.readline().decode('utf-8')
 
-	def switch_mode(self, mode, ac=None):
-		print ( "switch to {} mode {}".format(ac, mode))
-		if ( ac == "AC" ):
+	def switch_mode(self, mode):
+		if ( self.ac == True ):
 			msg=("CONF:{}:AC".format((mode.upper())))
 		else:
 			msg=("CONF:{}:DC".format((mode.upper())))

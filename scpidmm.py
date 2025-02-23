@@ -25,7 +25,7 @@ class MainWindow(wx.Frame):
     TIMER=6
     refresh=100
     frame=0
-    hl=0
+    hl=5
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(-1,-1))
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -85,7 +85,6 @@ class MainWindow(wx.Frame):
         self.multimeter.get()
         self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:f}</span>".format(self.multimeter.measurement))
         hl = self.m[self.multimeter.function1]
-        print ( "hl: {}".format(hl))
         if (self.hl != hl):
             self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
             self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
@@ -97,8 +96,12 @@ class MainWindow(wx.Frame):
         btn=event.GetEventObject()
         button_id = btn.GetId()
         if ( button_id == self.VOLT ):
+            if ( self.multimeter.function1 == "VOLT" ):
+                self.multimeter.ac = not self.multimeter.ac
             self.multimeter.switch_mode("VOLT")
         if ( button_id == self.CURR ):
+            if ( self.multimeter.function1 == "CURR" ):
+                self.multimeter.ac = not self.multimeter.ac
             self.multimeter.switch_mode("CURR")
         if ( button_id == self.RES ):
             self.multimeter.switch_mode("RES")
