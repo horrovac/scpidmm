@@ -14,24 +14,17 @@ class MainWindow(wx.Frame):
     TEMP=5
 
     m = {
-        'VOLT':0,
-        'CURR':1,
-        'RES':2,
-        'CAP':3,
-        'FREQ':4,
-        'TEMP':5
+        'VOLT':[0,"VDC",0],
+        'VOLT AC':[0,"VAC",1],
+        'CURR':[1,"ADC",2],
+        'CURR AC':[1,"AAC",3],
+        'RES':[2,"Ω",4],
+        'CONT':[2,"Ω",5],
+        'DIOD':[2,"V",6],
+        'CAP':[3,"F",7],
+        'FREQ':[4,"Hz",8],
+        'TEMP':[5,"°C",9]
     }
-
-    units = [
-            "VDC",
-            "ADC",
-            "Ω",
-            "F",
-            "Hz",
-            "°C",
-            "VAC",
-            "AAC"
-    ]
 
     TIMER=6
     refresh=100
@@ -94,11 +87,8 @@ class MainWindow(wx.Frame):
 
     def OnTimer(self,id):
         self.multimeter.get()
-        hl = self.m[self.multimeter.function1]
-        if(self.multimeter.ac == True):
-            unit = self.units[hl+6]
-        else:
-            unit = self.units[hl]
+        hl = self.m[self.multimeter.function1][0]
+        unit = self.m[self.multimeter.function1][1]
         self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:.4f} {}</span>".format(self.multimeter.measurement, unit))
         if (self.hl != hl):
             self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
@@ -112,27 +102,29 @@ class MainWindow(wx.Frame):
         button_id = btn.GetId()
         if ( button_id == self.VOLT ):
             if ( self.multimeter.function1 == "VOLT" ):
-                self.multimeter.ac = not self.multimeter.ac
+                self.multimeter.switch_mode("VOLT:AC")
             else:
-                self.multimeter.ac = False
-            self.multimeter.switch_mode("VOLT")
+                self.multimeter.switch_mode("VOLT:DC")
         if ( button_id == self.CURR ):
             if ( self.multimeter.function1 == "CURR" ):
-                self.multimeter.ac = not self.multimeter.ac
+                self.multimeter.switch_mode("CURR:AC")
             else:
-                self.multimeter.ac = False
-            self.multimeter.switch_mode("CURR")
+                self.multimeter.switch_mode("CURR:DC")
         if ( button_id == self.RES ):
-            self.multimeter.ac = False
-            self.multimeter.switch_mode("RES")
+            match self.multimeter.function1:
+                case 'RES':
+                    self.multimeter.switch_mode("CONT")
+                case 'CONT':
+                    self.multimeter.switch_mode("DIOD")
+                case 'DIOD':
+                    self.multimeter.switch_mode("RES")
+                case _:
+                    self.multimeter.switch_mode("RES")
         if ( button_id == self.CAP ):
-            self.multimeter.ac = False
             self.multimeter.switch_mode("CAP")
         if ( button_id == self.FREQ ):
-            self.multimeter.ac = False
             self.multimeter.switch_mode("FREQ")
         if ( button_id == self.TEMP ):
-            self.multimeter.ac = False
             self.multimeter.switch_mode("TEMP")
 
         
