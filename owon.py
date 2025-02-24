@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim: ts=4 sw=4 noexpandtab
 
-DEBUG=False
+DEBUG=True
 
 import serial
 import time
@@ -23,39 +23,33 @@ class DMM:
 		ser.open()
 
 	def get(self):
-		msg=("MEAS?\n".encode('utf-8'))
-		ser.write(msg)
-		result=ser.readline().decode('utf-8')
-		DEBUG and print("MEAS? result:", result)
-		try:
-			[num,exp] = result.split("E")
-		except:
-			try:
-				num = float(result.strip("'"))
-			except:
-				num = 0;
-			finally:
-				exp = 0
-		self.measurement=float(num) * pow(10,int(exp))
-		#for command in ["MEAS?", "function1?", "range?"]:
-		#	msg=(command+"\n").encode('utf-8')
-		#	ser.write(msg)
-		#	result=ser.readline().decode('utf-8')
-		#	print ( "{}".format(result))
 		msg=("FUNCTION?\n".encode('utf-8'))
 		ser.write(msg)
 		function1=ser.readline().decode('utf-8').strip()
-		self.function1=function1.strip('" ')
+		function1=function1.strip('" ')
+		if (function1 == '' ):
+			self.function1 = "OFFLINE"
+			self.measurement = 0
+		else:
+			self.function1 = function1
+			msg=("MEAS?\n".encode('utf-8'))
+			ser.write(msg)
+			result=ser.readline().decode('utf-8')
+			DEBUG and print("MEAS? result:", result)
+			try:
+				[num,exp] = result.split("E")
+			except:
+				try:
+					num = float(result.strip("'"))
+				except:
+					num = 0;
+				finally:
+					exp = 0
+			self.measurement=float(num) * pow(10,int(exp))
 		DEBUG and print ( "Function1:", self.function1 )
-		msg=("FUNCTION2?\n".encode('utf-8'))
-		ser.write(msg)
-		function2=ser.readline().decode('utf-8')
 
 	def switch_mode(self, mode):
-		if ( self.ac == True ):
-			msg=("CONF:{}:AC".format((mode.upper())))
-		else:
-			msg=("CONF:{}:DC".format((mode.upper())))
+		msg=("CONF:{}".format((mode)))
 		ser.write((msg+"\n").encode('utf-8'))
 		DEBUG and print ( msg )
 

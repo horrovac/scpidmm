@@ -13,6 +13,7 @@ class MainWindow(wx.Frame):
     FREQ=4
     TEMP=5
 
+    # NAME:[button_index, "display unit", index]
     m = {
         'VOLT':[0,"VDC",0],
         'VOLT AC':[0,"VAC",1],
@@ -23,13 +24,14 @@ class MainWindow(wx.Frame):
         'DIOD':[2,"V",6],
         'CAP':[3,"F",7],
         'FREQ':[4,"Hz",8],
-        'TEMP':[5,"°C",9]
+        'TEMP':[5,"°C",9],
+        'OFFLINE':[-1,"OFFLINE",10]
     }
 
     TIMER=6
     refresh=100
     frame=0
-    hl=5
+    hl=-1
     def __init__(self, parent, title):
         wx.Frame.__init__(self, parent, title=title, size=(-1,-1))
         hsizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -87,15 +89,21 @@ class MainWindow(wx.Frame):
 
     def OnTimer(self,id):
         self.multimeter.get()
-        hl = self.m[self.multimeter.function1][0]
-        unit = self.m[self.multimeter.function1][1]
-        self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:.4f} {}</span>".format(self.multimeter.measurement, unit))
-        if (self.hl != hl):
-            self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
-            self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
-            self.hl = hl
-
-
+        if ( self.m[self.multimeter.function1][0] == -1 ):
+            if ( self.timer.GetInterval() == self.refresh ):
+                self.timer.Start(2000)
+            self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>OFFLINE</span>")
+        else:
+            if ( self.timer.GetInterval() != self.refresh ):
+                self.timer.Start(self.refresh)
+            hl = self.m[self.multimeter.function1][0]
+            unit = self.m[self.multimeter.function1][1]
+            print ( "hl:",hl, "self.hl:", self.hl )
+            self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>{:.4f} {}</span>".format(self.multimeter.measurement, unit))
+            if (self.hl != hl):
+                self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
+                self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
+                self.hl = hl
 
     def OnClick(self,event):
         btn=event.GetEventObject()
