@@ -1,1 +1,1 @@
-Work in progress, only partly functional
+Work in progress, basic functionality available
