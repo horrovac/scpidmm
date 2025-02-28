@@ -148,4 +148,3 @@ class Res(Function):
 			except TypeError:
 				retval = "OVERLOAD"
 		return retval
-
