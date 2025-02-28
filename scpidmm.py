@@ -77,16 +77,16 @@ class MainWindow(wx.Frame):
 
 	def OnTimer(self,id):
 		self.multimeter.get()
-		if ( self.multimeter.function1.button() == -1 ):
+		if ( self.multimeter.func.button() == -1 ):
 			if ( self.timer.GetInterval() == self.refresh ):
 				self.timer.Start(2000)
 			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>OFFLINE</span>")
 		else:
 			if ( self.timer.GetInterval() != self.refresh ):
 				self.timer.Start(self.refresh)
-			hl = self.multimeter.function1.button()
-#			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.function1][1])
-			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.function1))
+			hl = self.multimeter.func.button()
+#			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.func][1])
+			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.func))
 			if (self.hl != hl):
 				self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
 				self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
@@ -96,17 +96,17 @@ class MainWindow(wx.Frame):
 		btn=event.GetEventObject()
 		button_id = btn.GetId()
 		if ( button_id == self.VOLT ):
-			if ( self.multimeter.function1 == "VOLT" ):
+			if ( self.multimeter.name() == "VOLT" ):
 				self.multimeter.switch_mode("VOLT:AC")
 			else:
 				self.multimeter.switch_mode("VOLT:DC")
 		if ( button_id == self.CURR ):
-			if ( self.multimeter.function1 == "CURR" ):
+			if ( self.multimeter.name() == "CURR" ):
 				self.multimeter.switch_mode("CURR:AC")
 			else:
 				self.multimeter.switch_mode("CURR:DC")
 		if ( button_id == self.RES ):
-			match self.multimeter.function1:
+			match self.multimeter.name():
 				case 'RES':
 					self.multimeter.switch_mode("CONT")
 				case 'CONT':
