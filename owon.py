@@ -27,6 +27,7 @@ class DMM:
 		self.m['CURR'] = Curr(self,1,"ADC")
 		self.m['CURR AC'] = Curr(self,1,"AAC")
 		self.m['RES'] = Res(self,2,"Ω")
+		self.m['CONT'] = Cont(self,2,"Ω")
 #		'VOLT':		[0,"VDC",0],
 #		'VOLT AC':	[1,"VAC",0],
 #		'CURR':		[2,"ADC",1],
@@ -55,10 +56,7 @@ class DMM:
 		else:
 			self.function1 = self.m[function1]
 			self.func1 = self.function1
-			msg=("MEAS?\n".encode('utf-8'))
-			ser.write(msg)
-			result=ser.readline().decode('utf-8')
-			print ( result )	
+			result = self.query("MEAS?")
 			try:
 				[num,exp] = result.split("E")
 			except:
@@ -68,7 +66,7 @@ class DMM:
 					num = 0;
 				finally:
 					exp = 0
-			self.measurement=float(num) * pow(10,int(exp))
+					self.measurement=float(num) * pow(10,int(exp))
 	
 	def value(self):
 		return self.func1
@@ -91,60 +89,70 @@ class Function:
 		if (meas == 1e9):
 			retval = None
 		elif(meas > 1e6):
-			retval = "{:.4f} M".format(meas / 1e6)
+			retval = [meas / 1e6, "M"]
 		elif(meas > 1e3):
-			retval = "{:.4f} k".format(meas / 1e3)
+			retval = [meas / 1e3, "k"]
 		elif (meas < 1e-9):
-			retval = "{:06.2f} n".format(meas * 1e9)
+			retval = [meas * 1e9, "n"]
 		elif (meas < 1e-6 ):
-			retval = "{:06.3f} µ".format(meas * 1e6)
+			retval = [meas * 1e6, "µ"]
 		elif (meas < 0.1 ):
-			retval = "{:06.3f} m".format(meas * 1e3)
+			retval = [meas * 1e3, "m"]
 		else:
-			retval = "{:06.4f} ".format(meas)
+			retval = [meas, ""]
 		return retval
+
+	def button(self):
+		return self.mode
 
 class Volt(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		if (meas < 1e-3):
-			retval = "{:.4f} {}".format(meas, self.unit)
-		else:
-			try:
-				# if normalised_value() returns None the concatenation
-				# with # a string will throw a TypeError and return
-				# overload
-				retval = self.normalised_value()+self.unit
-			except TypeError:
-				retval = "OVERLOAD"
+		try:
+			[num, prefix] = self.normalised_value()
+			if (meas < 1e-3):
+				retval = "{:.4f} {}".format(meas, self.unit)
+			else:
+				retval = "{:.4f} {}{}".format(num, prefix, self.unit)
+		except TypeError:
+			retval = "OVERLOAD"
 		return retval
 
 class Curr(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		if (meas < 1e-6):
-			retval = "{:.2f} µ{}".format(meas, self.unit)
-		else:
-			try:
-				# if normalised_value() returns None the concatenation
-				# with # a string will throw a TypeError and return
-				# overload
-				retval = self.normalised_value()+self.unit
-			except TypeError:
+		try:
+			[num, prefix] = self.normalised_value()
+			if (meas < 1e-6):
+				retval = "{:.2f} µ{}".format(meas, self.unit)
+			else:
+				retval = "{:.2f} {}{}".format(num, prefix, self.unit)
+		except TypeError:
 				retval = "OVERLOAD"
 		return retval
 
 class Res(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		if (meas < 1e-3):
-			retval = "{:.3f} {}".format(meas, self.unit)
-		else:
-			try:
-				# if normalised_value() returns None the concatenation
-				# with # a string will throw a TypeError and return
-				# overload
-				retval = self.normalised_value()+self.unit
-			except TypeError:
+		try:
+			[val, prefix] = self.normalised_value()
+			if (meas < 1e-3):
+				retval = "{:.2f} {}".format(meas, self.unit)
+			else:
+				retval = "{:.2f} {}{}".format(val, prefix, self.unit)
+		except TypeError:
 				retval = "OVERLOAD"
+		return retval
+
+class Cont(Function):
+	def __str__(self):
+		meas = self.p.measurement
+		try:
+			[val, prefix] = self.normalised_value()
+			if (meas > 50):
+				retval = "OPEN"
+			else:
+				retval = "{:.1f} {}{}".format(val, prefix, self.unit)
+		except TypeError:
+				retval = "OPEN"
 		return retval

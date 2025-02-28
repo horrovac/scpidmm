@@ -77,16 +77,16 @@ class MainWindow(wx.Frame):
 
 	def OnTimer(self,id):
 		self.multimeter.get()
-		if ( self.m[self.multimeter.function1][0] == -1 ):
+		if ( self.multimeter.function1.button() == -1 ):
 			if ( self.timer.GetInterval() == self.refresh ):
 				self.timer.Start(2000)
 			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>OFFLINE</span>")
 		else:
 			if ( self.timer.GetInterval() != self.refresh ):
 				self.timer.Start(self.refresh)
-			hl = self.m[self.multimeter.function1][0]
-			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.function1][1])
-			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(output))
+			hl = self.multimeter.function1.button()
+#			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.function1][1])
+			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.function1))
 			if (self.hl != hl):
 				self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
 				self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
