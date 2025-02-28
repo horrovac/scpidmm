@@ -25,6 +25,8 @@ class DMM:
 		self.m['VOLT'] = Volt(self,0,"VDC")
 		self.m['VOLT AC'] = Volt(self,1,"VAC")
 		self.m['CURR'] = Curr(self,1,"ADC")
+		self.m['CURR AC'] = Curr(self,1,"AAC")
+		self.m['RES'] = Res(self,2,"Ω")
 #		'VOLT':		[0,"VDC",0],
 #		'VOLT AC':	[1,"VAC",0],
 #		'CURR':		[2,"ADC",1],
@@ -102,17 +104,6 @@ class Function:
 			retval = "{:06.4f} ".format(meas)
 		return retval
 
-class Signed(Function):
-	def __str__(self):
-		try:
-			# if normalised_value() returns None the concatenation
-			# with # a string will throw a TypeError and return
-			# overload
-			retval = self.normalised_value()+self.unit
-		except TypeError:
-			retval = "OVERLOAD"
-		return retval
-
 class Volt(Function):
 	def __str__(self):
 		meas = self.p.measurement
@@ -143,12 +134,11 @@ class Curr(Function):
 				retval = "OVERLOAD"
 		return retval
 
-class Unsigned(Function):
-
+class Res(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		if ( meas < 0 ):
-			return "0 "+self.unit
+		if (meas < 1e-3):
+			retval = "{:.3f} {}".format(meas, self.unit)
 		else:
 			try:
 				# if normalised_value() returns None the concatenation
@@ -157,4 +147,5 @@ class Unsigned(Function):
 				retval = self.normalised_value()+self.unit
 			except TypeError:
 				retval = "OVERLOAD"
-			return retval
+		return retval
+
