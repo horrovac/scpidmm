@@ -22,14 +22,21 @@ class MainWindow(wx.Frame):
 	def __init__(self, parent, title):
 		wx.Frame.__init__(self, parent, title=title, size=(-1,-1))
 		hsizer = wx.BoxSizer(wx.HORIZONTAL)
-		grid=wx.GridBagSizer(hgap=1, vgap=1)
+		grid=wx.GridBagSizer(hgap=10, vgap=10)
+
+		font = wx.Font()
+		font.AddPrivateFont("fontDMM.ttf")
+		font.__init__()
+		font.SetFaceName("fontDMM")
+
+		self.SetFont(font)
 
 		# keep this in sync with the class global variables, it will be
 		# used to index the functions for acces to button properties
 		self.buttons = [
 			wx.Button(self, id=self.VOLT, label="≂ V"),
 			wx.Button(self, id=self.CURR, label="≂ A"),
-			wx.Button(self, id=self.RES, label="Ω 🔊"),
+			wx.Button(self, id=self.RES, label="Ω 🔊 #"),
 			wx.Button(self, id=self.CAP, label="CAP"),
 			wx.Button(self, id=self.FREQ, label="FREQ"),
 			wx.Button(self, id=self.TEMP, label="TEMP")
@@ -42,13 +49,16 @@ class MainWindow(wx.Frame):
 		grid.Add(self.buttons[self.FREQ], pos=(1,1))
 		grid.Add(self.buttons[self.TEMP], pos=(1,2))
 
+		self.buttons[self.RES].SetFont(font)
+
 		self.timer=wx.Timer(self,self.TIMER)
 		self.Bind(wx.EVT_TIMER, self.OnTimer, id=self.TIMER)
+		
 
 		# Open the connection to the multimeter
 		self.multimeter=owon.DMM()
 
-		self.display=wx.StaticText(self, size=(600,-1), style=wx.ALIGN_CENTRE_HORIZONTAL)
+		self.display=wx.StaticText(self, size=(800,200), style=wx.ALIGN_CENTRE_HORIZONTAL)
 
 		hsizer.Add(self.display)
 		hsizer.Add(grid)
@@ -80,13 +90,14 @@ class MainWindow(wx.Frame):
 		if ( self.multimeter.func.button() == -1 ):
 			if ( self.timer.GetInterval() == self.refresh ):
 				self.timer.Start(2000)
-			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black'>OFFLINE</span>")
+			self.display.SetLabelMarkup("<span size='81920' foreground='cyan' background='black'>OFFLINE</span>")
 		else:
 			if ( self.timer.GetInterval() != self.refresh ):
 				self.timer.Start(self.refresh)
 			hl = self.multimeter.func.button()
 #			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.func][1])
-			self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.func))
+			#self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.func))
+			self.display.SetLabelMarkup("<span size='81920' foreground='cyan' background='black' font-family='fontDMM'>{}</span>".format(self.multimeter.func))
 			if (self.hl != hl):
 				self.buttons[self.hl].SetBackgroundColour(wx.NullColour)
 				self.buttons[hl].SetBackgroundColour(wx.Colour(50,255,50))
