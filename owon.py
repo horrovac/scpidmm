@@ -23,17 +23,17 @@ class DMM:
 		ser.open()
 		self.idn=self.query('*IDN?')
 		self.m = {}
-		self.m['VOLT'] =	Volt(self,0,"VDC")
-		self.m['VOLT AC'] =	VoltAC(self,0,"VAC")
-		self.m['CURR'] =	Curr(self,1,"ADC")
-		self.m['CURR AC'] =	Function(self,1,"AAC")
-		self.m['RES'] =		Function(self,2,"Ω")
-		self.m['CONT'] =	Function(self,2,"Ω","OPEN")
-		self.m['DIOD'] =	Function(self,2,"VDC","OPEN")
-		self.m['CAP'] =		Function(self,3,"F")
-		self.m['FREQ'] =	Function(self,4,"Hz")
-		self.m['TEMP'] =	Function(self,5,"°C")
-		self.m['OFFLINE'] =	Function(self,-1,"",None)
+		self.m['VOLT'] =			Volt(self,0,"VDC")
+		self.m['VOLT AC'] =		VoltAC(self,0,"VAC")
+		self.m['CURR'] =			Curr(self,1,"ADC")
+		self.m['CURR AC'] =		Curr(self,1,"AAC")
+		self.m['RES'] =				Res(self,2,"Ω")
+		self.m['CONT'] =			Function(self,2,"Ω","OPEN")
+		self.m['DIOD'] =			Function(self,2,"VDC","OPEN")
+		self.m['CAP'] =				Cap(self,3,"F")
+		self.m['FREQ'] =			Function(self,4,"Hz")
+		self.m['TEMP'] =			Function(self,5,"°C")
+		self.m['OFFLINE'] =		Function(self,-1,"",None)
 
 	def query(self, query):
 		ser.reset_input_buffer()
@@ -146,17 +146,17 @@ class Curr(Function):
 			}
 
 class Res(Function):
-	def __str__(self):
-		meas = self.p.measurement
-		resp = self.normalised_value()
-		if ( resp != None ):
-			[num, prefix] = resp
-			if (meas < 1e-3):
-				self.retval = "{:.2f} {}".format(meas, self.unit)
-			else:
-				self.retval = "{:.2f} {}{}".format(num, prefix, self.unit)
-				print (retval)
-		return self.retval
+	def __init__(self, p, btn, unit):
+		super().__init__(p, btn, unit)
+		self.rng = {
+			'AUTO':		lambda a,b : self.retval,
+			'500 Ω':	lambda a,b : "{:06.2f} {}".format(a, b) if a < 5e2 else None,
+			'5 KΩ':		lambda a,b : "{:06.4f} k{}".format(a * 1e-3, b) if a < 5e3 else None,
+			'50 KΩ':	lambda a,b : "{:06.3f} k{}".format(a * 1e-3, b) if a < 5e4 else None,
+			'500 KΩ':	lambda a,b : "{:06.2f} k{}".format(a * 1e-3, b) if a < 5e5 else None,
+			'5 MΩ':		lambda a,b : "{:06.4f} M{}".format(a * 1e-6, b) if a < 5e6 else None,
+			'50 MΩ':	lambda a,b : "{:06.3f} M{}".format(a * 1e-6, b) if a < 5e7 else None
+			}
 
 class Cont(Function):
 	def __str__(self):
@@ -184,16 +184,27 @@ class Diod(Function):
 		return self.retval
 
 class Cap(Function):
+	def __init__(self, p, btn, unit):
+		super().__init__(p, btn, unit)
+		self.rng = {
+			'AUTO':		lambda a,b : self.retval,
+			'50 nF':	lambda a,b : "{:05.2f} n{}".format(a * 1e9, b) if a < 5e-8 else None,
+			'500 nF':	lambda a,b : "{:05.1f} n{}".format(a * 1e9, b) if a < 5e-7 else None,
+			'5uF':		lambda a,b : "{:05.3f} µ{}".format(a * 1e6, b) if a < 5e-6 else None,
+			'50uF':	lambda a,b : "{:05.2f} µ{}".format(a * 1e6, b) if a < 5e-5 else None,
+			'500uF':	lambda a,b : "{:05.1f} µ{}".format(a * 1e6, b) if a < 5e-4 else None,
+			'5 mF': 	lambda a,b : "{:05.3f} m{}".format(a * 1e3, b) if a < 5e-3 else None,
+			'50 mF': 	lambda a,b : "{:05.2f} m{}".format(a * 1e3, b) if a < 5e-2 else None
+			}
+
 	def __str__(self):
 		meas = self.p.measurement
-		resp = self.normalised_value()
-		if (resp != None):
-			[val, prefix] = resp
-			if (meas > 0.5):
-				self.retval = "OPEN"
-			else:
-				self.retval = "{:.1f} {}{}".format(val, prefix, self.unit)
-		return self.retval
+		if ( meas < 0 ):
+			meas = 0
+		retval = self.rng[self.p.range](meas, self.unit)
+		if ( retval == None ):
+			retval = self.retval
+		return retval
 
 class Freq(Function):
 	def __str__(self):
