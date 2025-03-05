@@ -8,7 +8,7 @@ import time
 class DMM:
 	"""Communication with a multimeter"""
 
-	port='/dev/ttyUSB1'
+	port='/dev/ttyUSB0'
 	#port = '/dev/pts/10'
 	measurement=0
 	function2=0
