@@ -28,11 +28,11 @@ class DMM:
 		self.m['CURR'] =			Curr(self,1,"ADC")
 		self.m['CURR AC'] =		Curr(self,1,"AAC")
 		self.m['RES'] =				Res(self,2,"Ω")
-		self.m['CONT'] =			Function(self,2,"Ω","OPEN")
-		self.m['DIOD'] =			Function(self,2,"VDC","OPEN")
+		self.m['CONT'] =			Cont(self,2,"Ω")
+		self.m['DIOD'] =			Diod(self,2,"VDC")
 		self.m['CAP'] =				Cap(self,3,"F")
-		self.m['FREQ'] =			Function(self,4,"Hz")
-		self.m['TEMP'] =			Function(self,5,"°C")
+		self.m['FREQ'] =			Freq(self,4,"Hz")
+		self.m['TEMP'] =			Temp(self,5,"°C")
 		self.m['OFFLINE'] =		Function(self,-1,"",None)
 
 	def query(self, query):
@@ -45,7 +45,6 @@ class DMM:
 
 	def get(self):
 		self.func_name=self.query('FUNCTION?') 
-		self.range=self.query('RANGE?')
 		try:
 			self.func = self.m[self.func_name]
 			result = self.query("MEAS?")
@@ -107,6 +106,7 @@ class Function:
 
 	def __str__(self):
 		meas = self.p.measurement
+		self.p.range=self.p.query('RANGE?')
 		retval = self.rng[self.p.range](meas, self.unit)
 		if ( retval == None ):
 			retval = self.retval
@@ -159,28 +159,27 @@ class Res(Function):
 			}
 
 class Cont(Function):
+	def __init__(self, p, btn, unit):
+		super().__init__(p, btn, unit)
+		self.thresh = 50
+		self.retval = "    open    "
+
 	def __str__(self):
-		self.retval = "OPEN"
 		meas = self.p.measurement
-		resp = self.normalised_value()
-		if (resp != None):
-			[val, prefix] = resp
-			if (meas > 50):
-				self.retval = "OPEN"
-			else:
-				self.retval = "{:.1f} {}{}".format(val, prefix, self.unit)
+		if ( meas < self.thresh ):
+			return "{:06.1f} {}".format(meas, self.unit)
 		return self.retval
 
 class Diod(Function):
+	def __init__(self, p, btn, unit):
+		super().__init__(p, btn, unit)
+		self.thresh = 0.5
+		self.retval = "    open    "
+
 	def __str__(self):
 		meas = self.p.measurement
-		resp = self.normalised_value()
-		if (resp != None):
-			[val, prefix] = resp
-			if (meas > 0.5):
-				self.retval = "OPEN"
-			else:
-				self.retval = "{:.1f} {}{}".format(val, prefix, self.unit)
+		if ( meas < self.thresh ):
+			return "{:06.4f} {}".format(meas, self.unit)
 		return self.retval
 
 class Cap(Function):
@@ -197,29 +196,12 @@ class Cap(Function):
 			'50 mF': 	lambda a,b : "{:05.2f} m{}".format(a * 1e3, b) if a < 5e-2 else None
 			}
 
-	def __str__(self):
-		meas = self.p.measurement
-		if ( meas < 0 ):
-			meas = 0
-		retval = self.rng[self.p.range](meas, self.unit)
-		if ( retval == None ):
-			retval = self.retval
-		return retval
-
 class Freq(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		resp = self.normalised_value()
-		if (resp != None):
-			[val, prefix] = resp
-			if (meas < 1e-4):
-				self.retval = "{:.4f} {}".format(meas, self.unit)
-			else:
-				self.retval = "{:.4f} {}{}".format(val, prefix, self.unit)
-		return self.retval
+		return "{:06.4f} {}".format(meas, self.unit)
 
 class Temp(Function):
 	def __str__(self):
 		meas = self.p.measurement
-		retval = "{:.1f} {}".format(meas, self.unit)
-		return retval
+		return  "{:.1f} {}".format(meas, self.unit)

@@ -18,6 +18,7 @@ class MainWindow(wx.Frame):
 	TIMER=6
 	refresh=100
 	frame=0
+	height=150
 	hl=-1
 	def __init__(self, parent, title):
 		wx.Frame.__init__(self, parent, title=title, size=(-1,-1))
@@ -64,14 +65,19 @@ class MainWindow(wx.Frame):
 		# Open the connection to the multimeter
 		self.multimeter=owon.DMM()
 
-		self.display=wx.StaticText(self, size=(800,150), style=wx.ALIGN_RIGHT)
+		self.display=wx.StaticText(self, size=(800,self.height), style=wx.ALIGN_RIGHT)
 		self.display.SetFont(bigfont)
 		self.display.SetForegroundColour(wx.Colour(94, 255, 0))
 		self.display.SetBackgroundColour(wx.BLACK)
+
+		self.panel=wx.Panel(self, size=(self.height,self.height))
+		self.panel.SetForegroundColour(wx.Colour(94, 255, 0))
+		self.panel.SetBackgroundColour(wx.BLACK)
 		
 #self.display.SetDefaultStyle(wx.TextAttr(wx.CYAN, wx.BLACK, font="fontDMM"))
 
 		hsizer.Add(self.display)
+		hsizer.Add(self.panel)
 		hsizer.Add(grid)
 	
 		self.SetSizerAndFit(hsizer)
