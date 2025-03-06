@@ -5,6 +5,13 @@ DEBUG=False
 import serial
 import time
 
+# import pyudev if available
+try:
+	import pyudev
+except:
+	print("pyudev module not available, can't look for the mulitmeter.")
+	pydev = None
+
 class DMM:
 	"""Communication with a multimeter"""
 
@@ -17,7 +24,9 @@ class DMM:
 	def __init__(self):
 		global ser
 		ser=serial.Serial()
-		ser.port=self.port
+		ser.port=self.find_port()
+		if ( ser.port == None ):
+			ser.port=self.port
 		ser.baudrate=115200
 		ser.timeout=1
 		ser.open()
@@ -34,6 +43,18 @@ class DMM:
 		self.m['FREQ'] =			Freq(self,4,"Hz")
 		self.m['TEMP'] =			Temp(self,5,"°C")
 		self.m['OFFLINE'] =		Function(self,-1,"",None)
+
+	def find_port(self):
+		try:
+			context=pyudev.Context()
+			for dev in context.list_devices(subsystem='tty', ID_BUS='usb'):
+				vendor=dev.get('ID_USB_VENDOR_ID')
+				model=dev.get('ID_USB_MODEL_ID')
+				if (vendor=='1a86' and model=='7523'):
+					return dev.get('DEVNAME')
+			return None
+		except:
+			return None
 
 	def query(self, query):
 		ser.reset_input_buffer()
