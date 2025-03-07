@@ -14,7 +14,6 @@ class MainWindow(wx.Frame):
 	FREQ=4
 	TEMP=5
 
-
 	TIMER=6
 	refresh=100
 	frame=0
@@ -64,6 +63,12 @@ class MainWindow(wx.Frame):
 
 		# Open the connection to the multimeter
 		self.multimeter=owon.DMM()
+		print ( self.multimeter.port)
+		if(self.multimeter.port == ""):
+			ask = wx.TextEntryDialog(self, "Select serial port your mutlimeter is attached to",value=self.multimeter.port)
+			if ask.ShowModal() == wx.ID_OK:
+				self.multimeter.port = ask.GetValue()
+				self.multimeter.open_connection()
 
 		self.display=wx.StaticText(self, size=(800,self.height), style=wx.ALIGN_RIGHT)
 		self.display.SetFont(bigfont)
@@ -110,7 +115,7 @@ class MainWindow(wx.Frame):
 			self.display.SetLabel("OFF        ")
 		else:
 			if ( self.timer.GetInterval() != self.refresh ):
-				self.timer.Start(self.refresh)
+				self.timer.Start(self.multimeter.refresh)
 			hl = self.multimeter.func.button()
 #			output="{}{}".format(self.multimeter.value(), self.m[self.multimeter.func][1])
 			#self.display.SetLabelMarkup("<span size='40960' foreground='red' background='black' font-family='ui-monospace'>{}</span>".format(self.multimeter.func))

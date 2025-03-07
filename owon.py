@@ -4,6 +4,10 @@ DEBUG=False
 
 import serial
 import time
+import os
+import faulthandler
+
+faulthandler.enable()
 
 # import pyudev if available
 try:
@@ -13,24 +17,23 @@ except:
 	pydev = None
 
 class DMM:
-	"""Communication with a multimeter"""
+	"""Communication with an OWON XDM 1*41 multimeter"""
 
-	port='/dev/ttyUSB0'
+	port=""
 	#port = '/dev/pts/10'
 	measurement=0
 	function2=0
 	meas_range=0
+	idn=""
+	refresh=250
 
 	def __init__(self):
 		global ser
+		self.port=self.find_port()
 		ser=serial.Serial()
-		ser.port=self.find_port()
-		if ( ser.port == None ):
-			ser.port=self.port
+		ser.port = self.port
 		ser.baudrate=115200
 		ser.timeout=1
-		ser.open()
-		self.idn=self.query('*IDN?')
 		self.m = {}
 		self.m['VOLT'] =			Volt(self,0,"VDC")
 		self.m['VOLT AC'] =		VoltAC(self,0,"VAC")
@@ -43,6 +46,19 @@ class DMM:
 		self.m['FREQ'] =			Freq(self,4,"Hz")
 		self.m['TEMP'] =			Temp(self,5,"°C")
 		self.m['OFFLINE'] =		Function(self,-1,"",None)
+		self.open_connection()
+
+	def open_connection(self):
+		print ( "port: ", self.port )
+		if ( self.port != "" ):
+			if ( os.path.exists(self.port)):
+				ser.port = self.port
+				ser.open()
+				print ( "opening port")
+				self.idn=self.query('*IDN?')
+			else:
+				print("this port does not exist")
+				self.port=""
 
 	def find_port(self):
 		try:
@@ -50,21 +66,41 @@ class DMM:
 			for dev in context.list_devices(subsystem='tty', ID_BUS='usb'):
 				vendor=dev.get('ID_USB_VENDOR_ID')
 				model=dev.get('ID_USB_MODEL_ID')
+				print ( "vendor: " + vendor + " model: " + model )
 				if (vendor=='1a86' and model=='7523'):
-					return dev.get('DEVNAME')
-			return None
+					devname = dev.get('DEVNAME')
+					print ( "devname: ", devname )
+					return devname
+			return ""
 		except:
-			return None
+			return ""
 
 	def query(self, query):
-		ser.reset_input_buffer()
-		msg="{}\n".format(query).encode('utf-8')
-		ser.write(msg)
-		answer=ser.readline().decode('utf-8').strip()
-		answer=answer.strip('\"')
-		return answer
+		if ( ser.is_open == True):
+			ser.reset_input_buffer()
+			msg="{}\n".format(query).encode('utf-8')
+			ser.write(msg)
+			answer=ser.readline().decode('utf-8').strip()
+			answer=answer.strip('\"')
+			return answer
+		else:
+			print ("No connection")
+			self.open_connection()
+			return None
+
+	def switch_mode(self, mode):
+		"""Switches the multimeter mode to SCPI-formatted mode, e.g:
+
+		VOLT
+		VOLT:AC
+		"""
+		msg=("CONF:{}".format((mode)))
+		ser.write((msg+"\n").encode('utf-8'))
+		DEBUG and print ( msg )
 
 	def get(self):
+		"""Fetch an update from the multimeter. Call this in your main loop
+		or at any point before you display a result"""
 		self.func_name=self.query('FUNCTION?') 
 		try:
 			self.func = self.m[self.func_name]
@@ -89,13 +125,11 @@ class DMM:
 	def name(self):
 		return self.func_name
 
-	def switch_mode(self, button):
-		msg=("CONF:{}".format((button)))
-		ser.write((msg+"\n").encode('utf-8'))
-		DEBUG and print ( msg )
-
 class Function:
-	"""class representing current function of the multimeter"""
+	"""class representing current function of the multimeter
+
+	various (sub)instances of this are referenced in the dictionary self.m and
+	pointed to by the attribute self.function1"""
 
 	def __init__(self, p, btn, unit, msg = "    0L.     "):
 		self.btn = btn
@@ -104,28 +138,14 @@ class Function:
 		self.retval = msg
 		self.range = 'AUTO'
 
-	def normalised_value(self):
-		meas = self.p.measurement
-		if (meas == 1e9): # 1e9 is always overload
-			retval = None
-		elif(meas > 1e6):
-			retval = [meas / 1e6, "M"]
-		elif(meas > 1e3):
-			retval = [meas / 1e3, "k"]
-		elif (meas < 1e-9):
-			retval = [meas * 1e9, "n"]
-		elif (meas < 1e-6 ):
-			retval = [meas * 1e6, "µ"]
-		elif (meas < 0.1 ):
-			retval = [meas * 1e3, "m"]
-		else:
-			retval = [meas, ""]
-		return retval
-
 	def button(self):
 		return self.btn
 
 	def __str__(self):
+		"""String representation inherited by sub-classes which represent modes
+		that have ranges. Those without override this with their own, otherwise
+		querying the range leads to a delay in communication with the multimeter
+		"""
 		meas = self.p.measurement
 		self.p.range=self.p.query('RANGE?')
 		retval = self.rng[self.p.range](meas, self.unit)
@@ -134,6 +154,10 @@ class Function:
 		return retval
 
 class Volt(Function):
+	"""Defines the voltage ranges and binds their representations to the range
+	string returned by the multimeter. The range is queried in the parent's
+	__str__() method..
+	"""
 	def __init__(self, p, btn, unit):
 		super().__init__(p, btn, unit)
 		self.rng = {
@@ -147,6 +171,11 @@ class Volt(Function):
 			}
 
 class VoltAC(Volt):
+	"""Defines the AC voltage ranges and binds their representations to the range
+	string returned by the multimeter. The range is queried in the parent's
+	__str__() method. In this case the ranges roughly match those for DC, so it
+	inherits them from the DC mode and modifies them for AC.
+	"""
 	def __init__(self, p, btn, unit):
 		super().__init__(p, btn, unit)
 		del(self.rng['50 mV'])
@@ -154,6 +183,10 @@ class VoltAC(Volt):
 		self.rng['750 V'] =	lambda a,b : "{:07.1f}  {}".format(a, b) if a < 750 else None
 
 class Curr(Function):
+	"""Defines the current measurement ranges and binds their representations of
+	to the range string returned by the multimeter. The range is queried in the
+	parent's __str__() method..
+	"""
 	def __init__(self, p, btn, unit):
 		super().__init__(p, btn, unit)
 		self.rng = {
@@ -167,6 +200,10 @@ class Curr(Function):
 			}
 
 class Res(Function):
+	"""Defines the resistance ranges and binds their representations to the range
+	string returned by the multimeter. The range is queried in the parent's 
+	__str__() method.
+	"""
 	def __init__(self, p, btn, unit):
 		super().__init__(p, btn, unit)
 		self.rng = {
@@ -204,6 +241,10 @@ class Diod(Function):
 		return self.retval
 
 class Cap(Function):
+	"""Defines the capacitance ranges and binds their representations to the range
+	string returned by the multimeter. The range is queried in the parent's
+	__str__() method.
+	"""
 	def __init__(self, p, btn, unit):
 		super().__init__(p, btn, unit)
 		self.rng = {
@@ -223,6 +264,10 @@ class Freq(Function):
 		return "{:06.4f} {}".format(meas, self.unit)
 
 class Temp(Function):
+	"""TODO: implement changing of the measurement unit."""
 	def __str__(self):
 		meas = self.p.measurement
-		return  "{:.1f} {}".format(meas, self.unit)
+		unit = self.p.query("TEMP:RTD:UNIT?")
+		if ( unit != 'K' ):
+			unit = '°' + unit
+		return  "{:.1f} {}".format(meas, unit)
